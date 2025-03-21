@@ -1,0 +1,229 @@
+CODE BASICS RESUME PROJECT CHALLENGE #4
+
+ATLIQ HARDWARE'S MANAGEMENT WANTS TO GET SOME INSIGHTS IN THE SALES OF ITS PRODUCTS. 
+AS A DATA ANALYST MY TASK IS TO RESPOND TO 10 AD-HOC QUERIES ASSIGNED TO ME. 
+
+1.	Provide the list of markets in which customer "Atliq Exclusive" operates its business in the APAC region.
+
+
+        SELECT DISTINCT market
+        FROM gdb023.dim_customer
+        WHERE customer = 'Atliq Exclusive'
+        AND region = 'APAC';
+
+2.	What is the percentage of unique product increase in 2021 vs. 2020? The final output contains these fields, 
+    unique_products_2020 
+    unique_products_2021 
+    percentage_chg 
+
+
+        SELECT 
+            unique_products_2020,
+            unique_products_2021,
+            ((unique_products_2021 - unique_products_2020) /   unique_products_2020 * 100) AS percentage_chg
+        FROM (
+            SELECT 
+                (SELECT COUNT(DISTINCT product_code) 
+                 FROM gdb023.fact_sales_monthly 
+                 WHERE fiscal_year = 2020) AS unique_products_2020,
+                (SELECT COUNT(DISTINCT product_code) 
+                 FROM gdb023.fact_sales_monthly 
+                 WHERE fiscal_year = 2021) AS unique_products_2021
+        ) AS subquery;
+
+3.	Provide a report with all the unique product counts for each segment and sort them in descending order of product counts. The final output contains 2 fields, 
+    segment 
+    product_count	
+
+
+        SELECT 
+            segment,
+            COUNT(DISTINCT product_code) AS product_count
+        FROM gdb023.dim_product
+        GROUP BY segment
+        ORDER BY product_count DESC;
+
+4.	Follow-up: Which segment had the most increase in unique products in 2021 vs 2020? The final output contains these fields, 
+    segment 
+    product_count_2020 
+    product_count_2021 
+    difference
+
+
+        WITH product_counts AS (
+            SELECT   d.segment,  f.fiscal_year,
+                COUNT(DISTINCT f.product_code) AS product_count
+            FROM gdb023.fact_sales_monthly f
+            JOIN gdb023.dim_product d
+                ON f.product_code = d.product_code
+            WHERE f.fiscal_year IN (2020, 2021)
+            GROUP BY d.segment, f.fiscal_year
+        ),
+        pivoted_counts AS (
+            SELECT
+                segment,
+                MAX(CASE WHEN fiscal_year = 2020 THEN product_count END) AS product_count_2020,
+                MAX(CASE WHEN fiscal_year = 2021 THEN product_count END) AS product_count_2021
+            FROM product_counts
+            GROUP BY segment
+        ),
+        increased_counts AS (
+            SELECT
+                segment,
+                product_count_2020,
+                product_count_2021,
+                (product_count_2021 - product_count_2020) AS difference
+            FROM pivoted_counts
+        )
+        SELECT 
+            segment,
+            product_count_2020,
+            product_count_2021,
+            difference
+        FROM increased_counts
+        ORDER BY difference DESC
+
+5.	Get the products that have the highest and lowest manufacturing costs. The final output should contain these fields,
+    product_code 
+    product 
+    manufacturing_cost
+
+
+        SELECT 
+            p.product_code,
+            p.product,
+            f.manufacturing_cost
+        FROM gdb023.fact_manufacturing_cost f
+        JOIN gdb023.dim_product p
+            ON f.product_code = p.product_code
+        
+        WHERE f.manufacturing_cost = (
+            SELECT MAX(manufacturing_cost)
+            FROM gdb023.fact_manufacturing_cost
+        )
+        OR f.manufacturing_cost = (
+            SELECT MIN(manufacturing_cost)
+            FROM gdb023.fact_manufacturing_cost
+        );
+
+6.	Generate a report which contains the top 5 customers who received an average high pre_invoice_discount_pct for the fiscal year 2021 and in the Indian market. The final output contains these fields, 
+    customer_code 
+    customer 
+    average_discount_percentage
+
+
+        SELECT 
+            d.customer_code,
+            d.customer,
+           	 AVG(f.pre_invoice_discount_pct) AS average_discount_percentage
+        FROM gdb023.fact_pre_invoice_deductions f
+          	JOIN gdb023.dim_customer d
+            ON f.customer_code = d.customer_code
+        WHERE f.fiscal_year = 2021
+         AND d.market = 'India'
+        GROUP BY d.customer_code, d.customer
+        ORDER BY average_discount_percentage DESC
+        LIMIT 5;
+
+
+7.	Get the complete report of the Gross sales amount for the customer “Atliq Exclusive” for each month . This analysis helps to get an idea of low and high-performing months and take strategic decisions. The final report contains these columns: 
+    Month 
+    Year 
+    Gross sales Amount
+
+
+        SELECT 
+            DATE_FORMAT(f.date, '%Y-%m') AS Month,
+            f.fiscal_year AS Year,
+            SUM(f.sold_quantity * g.gross_price) AS gross_sales_amount
+        FROM gdb023.fact_sales_monthly f
+        JOIN gdb023.dim_customer d
+            ON f.customer_code = d.customer_code
+        JOIN gdb023.fact_gross_price g
+            ON f.product_code = g.product_code
+            AND f.fiscal_year = g.fiscal_year
+        WHERE d.customer = 'Atliq Exclusive'
+        GROUP BY Month, Year
+        ORDER BY Year, Month;
+
+8.	In which quarter of 2020, got the maximum total_sold_quantity? The final output contains these fields sorted by the total_sold_quantity, 
+    Quarter 
+    total_sold_quantity
+
+
+        SELECT 
+            CASE
+                WHEN MONTH(date) BETWEEN 9 AND 11 THEN 'FIRST QUARTER'
+                WHEN MONTH(date) = 12 OR MONTH(date) BETWEEN 1 AND 2 THEN 'SECOND QUARTER'
+                WHEN MONTH(date) BETWEEN 3 AND 5 THEN 'THIRD QUARTER'
+                WHEN MONTH(date) BETWEEN 6 AND 8 THEN 'FOURTH QUARTER'
+            END AS QUARTER,
+            CONCAT(CAST(ROUND(SUM(sold_quantity) / 1000000, 2) AS CHAR), ' M') AS total_quantities_sold
+        FROM gdb023.fact_sales_monthly
+        WHERE fiscal_year = 2020
+        GROUP BY QUARTER
+        ORDER BY total_quantities_sold DESC;
+
+ 
+
+9.	Which channel helped to bring more gross sales in the fiscal year 2021 and the percentage of contribution? The final output contains these fields, channel 
+    gross_sales_mln 
+    percentage
+
+
+        WITH channels AS (
+            SELECT 
+                dc.channel,
+                (SUM(fm.sold_quantity * fp.gross_price) / 1000000) AS gross_sales_mln
+            FROM gdb023.fact_sales_monthly fm
+            JOIN gdb023.fact_gross_price fp
+                ON fm.product_code = fp.product_code
+            JOIN gdb023.dim_customer dc
+                ON fm.customer_code = dc.customer_code
+            WHERE fm.fiscal_year = 2021
+            GROUP BY dc.channel
+        )
+        
+        SELECT
+            channel,
+            gross_sales_mln,
+            ROUND(gross_sales_mln * 100 / (SELECT SUM(gross_sales_mln) FROM channels), 2) AS pct_contributions
+        FROM channels
+        ORDER BY gross_sales_mln DESC;
+         
+
+10.	Get the Top 3 products in each division that have a high total_sold_quantity in the fiscal_year 2021? The final output contains these fields, 
+    division 
+    product_code
+    product 
+    total_sold_quantity 
+    rank_order
+
+
+        WITH RankedProducts AS (
+            SELECT 
+                dp.division,
+                dp.product_code,
+                dp.product,
+                SUM(fsm.sold_quantity) AS total_sold_quantity,
+                ROW_NUMBER() OVER (PARTITION BY dp.division ORDER BY SUM(fsm.sold_quantity) DESC) AS rank_order
+            FROM gdb023.fact_sales_monthly fsm
+            JOIN gdb023.dim_product dp
+                ON fsm.product_code = dp.product_code
+            WHERE fsm.fiscal_year = 2021
+            GROUP BY dp.division, dp.product_code, dp.product
+        )
+        
+        SELECT
+            division,
+            product_code,
+            product,
+            total_sold_quantity,
+            rank_order
+        FROM RankedProducts
+        WHERE rank_order <= 3
+        ORDER BY division, rank_order;
+
+
+
+
