@@ -18,7 +18,13 @@ Atliq Hardwares struggles to make quick, data-driven decisions due to a lack of 
     
 *    **Tools:** MySQL, Power BI
 
-**5. Insights & Findings-**
+**5. Key Learnings-**
+
+1.  Discovered a special use case of CROSS JOIN and used DENSE RANK (Window Function) for the first time in a real-life project.
+2.  Effectively used Common Table Expressions (CTEs) to simplify complex queries and improve efficiency.
+3.  Gained deeper insights into the Consumer Goods domain through real-world data analysis.
+4.  Implemented data validation techniques, cross-checking SQL results with MS Excel.
+5.  Improved Googling skills, making it easier to find solutions and optimize queries.
 
 
 
