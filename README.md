@@ -1,4 +1,4 @@
-# Consumer_goods_analytics
+# Consumer_Goods_Analytics_SQL
 
 **1. Project Title-**
 
