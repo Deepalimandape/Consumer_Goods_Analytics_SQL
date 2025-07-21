@@ -172,10 +172,11 @@ ORDER BY total_sold_quantity DESC;
         
         SELECT
             channel,
-            gross_sales_mln,
-            ROUND(gross_sales_mln  / (SELECT SUM(gross_sales_mln) FROM channels)*100, 2) AS pct_contributions
+            CONCAT(ROUND(gross_sales_mln,2), ' M'),
+            CONCAT(ROUND(gross_sales_mln  / (SELECT SUM(gross_sales_mln) FROM channels)*100, 2), ' %') AS pct_contributions
         FROM channels
         ORDER BY gross_sales_mln DESC;
+         
          
 
 10.	Get the Top 3 products in each division that have a high total_sold_quantity in the fiscal_year 2021? The final output contains these fields, 
