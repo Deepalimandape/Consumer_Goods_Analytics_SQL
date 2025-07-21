@@ -50,38 +50,25 @@ AS A DATA ANALYST MY TASK IS TO RESPOND TO 10 AD-HOC QUERIES ASSIGNED TO ME.
     difference
 
 
-        WITH product_counts AS (
-            SELECT   d.segment,  f.fiscal_year,
-                COUNT(DISTINCT f.product_code) AS product_count
-            FROM gdb023.fact_sales_monthly f
-            JOIN gdb023.dim_product d
-                ON f.product_code = d.product_code
-            WHERE f.fiscal_year IN (2020, 2021)
-            GROUP BY d.segment, f.fiscal_year
-        ),
-        pivoted_counts AS (
-            SELECT
-                segment,
-                MAX(CASE WHEN fiscal_year = 2020 THEN product_count END) AS product_count_2020,
-                MAX(CASE WHEN fiscal_year = 2021 THEN product_count END) AS product_count_2021
-            FROM product_counts
-            GROUP BY segment
-        ),
-        increased_counts AS (
-            SELECT
-                segment,
-                product_count_2020,
-                product_count_2021,
-                (product_count_2021 - product_count_2020) AS difference
-            FROM pivoted_counts
-        )
-        SELECT 
-            segment,
-            product_count_2020,
-            product_count_2021,
-            difference
-        FROM increased_counts
-        ORDER BY difference DESC
+  WITH product_counts AS 
+(    SELECT 
+        d.segment,
+        COUNT(DISTINCT CASE WHEN f.fiscal_year = 2020 THEN f.product_code END) AS product_count_2020,
+        COUNT(DISTINCT CASE WHEN f.fiscal_year = 2021 THEN f.product_code END) AS product_count_2021
+    FROM gdb023.fact_sales_monthly f
+    JOIN gdb023.dim_product d
+        ON f.product_code = d.product_code
+    WHERE f.fiscal_year IN (2020, 2021)
+    GROUP BY d.segment
+)
+SELECT 
+    segment,
+    product_count_2020,
+    product_count_2021,
+    (product_count_2021 - product_count_2020) AS difference
+FROM product_counts
+ORDER BY difference DESC;
+
 
 5.	Get the products that have the highest and lowest manufacturing costs. The final output should contain these fields,
     product_code 
