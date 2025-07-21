@@ -173,7 +173,7 @@ ORDER BY total_sold_quantity DESC;
         SELECT
             channel,
             gross_sales_mln,
-            ROUND(gross_sales_mln * 100 / (SELECT SUM(gross_sales_mln) FROM channels), 2) AS pct_contributions
+            ROUND(gross_sales_mln  / (SELECT SUM(gross_sales_mln) FROM channels)*100, 2) AS pct_contributions
         FROM channels
         ORDER BY gross_sales_mln DESC;
          
