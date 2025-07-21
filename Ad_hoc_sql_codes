@@ -98,19 +98,18 @@ ORDER BY difference DESC;
     customer 
     average_discount_percentage
 
+SELECT
+        c.customer_code,
+        c.customer,
+        ROUND(avg(f.pre_invoice_discount_pct),4) AS avg_discount_pct
+FROM fact_pre_invoice_deductions f 
+JOIN dim_customer c ON c.customer_code = f.customer_code
+WHERE f.fiscal_year = 2021 AND c.market='India'
+GROUP BY c.customer_code, c.customer
+ORDER BY avg_discount_pct DESC
+LIMIT 5;
 
-        SELECT 
-            d.customer_code,
-            d.customer,
-           	 AVG(f.pre_invoice_discount_pct) AS average_discount_percentage
-        FROM gdb023.fact_pre_invoice_deductions f
-          	JOIN gdb023.dim_customer d
-            ON f.customer_code = d.customer_code
-        WHERE f.fiscal_year = 2021
-         AND d.market = 'India'
-        GROUP BY d.customer_code, d.customer
-        ORDER BY average_discount_percentage DESC
-        LIMIT 5;
+    
 
 
 7.	Get the complete report of the Gross sales amount for the customer “Atliq Exclusive” for each month . This analysis helps to get an idea of low and high-performing months and take strategic decisions. The final report contains these columns: 
